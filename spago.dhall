@@ -8,6 +8,7 @@ You can edit this file as you like.
     [ "bouzuya-datetime"
     , "console"
     , "effect"
+    , "formatters"
     , "node-process"
     , "psci-support"
     , "test-unit"
