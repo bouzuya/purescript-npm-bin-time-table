@@ -4,6 +4,7 @@ module OffsetDateTime
   , inOffset
   , inUTC
   , offsetDateTime
+  , timeZoneOffset
   , toDateString
   , toDateTime
   , toString

@@ -6,8 +6,10 @@ module DateTimeParser
 import Prelude
 
 import Bouzuya.DateTime.TimeZoneOffset (TimeZoneOffset)
+import Bouzuya.DateTime.TimeZoneOffset as TimeZoneOffset
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.DateTime (DateTime)
+import Data.DateTime as DateTime
 import Data.Either as Either
 import Data.Formatter.DateTime as Formatter
 import Data.List as List
@@ -15,6 +17,8 @@ import Data.Maybe (Maybe)
 import Data.String.Regex as Regex
 import Data.String.Regex.Flags as RegexFlags
 import Data.String.Regex.Unsafe as RegexUnsafe
+import Data.Time.Duration (Milliseconds)
+import Data.Time.Duration as TimeDuration
 import OffsetDateTime (OffsetDateTime)
 import OffsetDateTime as OffsetDateTime
 import TimeZoneOffsetFormat as TimeZoneOffsetFormat
@@ -50,7 +54,11 @@ parseOffsetDateTime s = do
   timeZoneOffsetString <- join (NonEmptyArray.index matches 2)
   dateTime <- parseDateTime dateTimeString
   timeZoneOffset <- parseTimeZoneOffset timeZoneOffsetString
-  OffsetDateTime.offsetDateTime timeZoneOffset dateTime
+  let
+    ms :: Milliseconds
+    ms = TimeZoneOffset.toDuration timeZoneOffset
+  utcDateTime <- DateTime.adjust (TimeDuration.negateDuration ms) dateTime
+  OffsetDateTime.offsetDateTime timeZoneOffset utcDateTime
 
 parseTimeZoneOffset :: String -> Maybe TimeZoneOffset
 parseTimeZoneOffset = TimeZoneOffsetFormat.fromString
