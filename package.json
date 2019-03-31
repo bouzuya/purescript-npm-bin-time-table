@@ -1,7 +1,7 @@
 {
   "name": "purescript-npm-bin-time-table",
   "description": "time-table",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "author": {
     "url": "https://bouzuya.net/",
     "name": "bouzuya",
