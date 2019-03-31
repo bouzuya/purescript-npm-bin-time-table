@@ -1,0 +1,40 @@
+{
+  "name": "purescript-npm-bin-time-table",
+  "description": "time-table",
+  "version": "0.0.0",
+  "author": {
+    "url": "https://bouzuya.net/",
+    "name": "bouzuya",
+    "email": "m@bouzuya.net"
+  },
+  "bin": "bin/time-table",
+  "bugs": {
+    "url": "https://github.com/bouzuya/purescript-npm-bin-time-table/issues"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "purescript": "^0.12.3",
+    "spago": "^0.7.5"
+  },
+  "files": [
+    "bin"
+  ],
+  "homepage": "https://github.com/bouzuya/purescript-npm-bin-time-table#readme",
+  "keywords": [],
+  "license": "MIT",
+  "main": "index.js",
+  "repository": {
+    "url": "git+https://github.com/bouzuya/purescript-npm-bin-time-table.git",
+    "type": "git"
+  },
+  "scripts": {
+    "build": "spago build",
+    "bundle": "spago make-module",
+    "docs": "spago sources | xargs purs docs --format html 'src/**/*.purs'",
+    "prepare": "npm-run-all -s build bundle",
+    "purs": "purs",
+    "repl": "spago repl",
+    "spago": "spago",
+    "test": "spago test"
+  }
+}
