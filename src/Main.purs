@@ -4,6 +4,9 @@ module Main
 
 import Prelude
 
+import Bouzuya.DateTime.Formatter.OffsetDateTime as OffsetDateTimeFormatter
+import Bouzuya.DateTime.OffsetDateTime (OffsetDateTime)
+import Bouzuya.DateTime.OffsetDateTime as OffsetDateTime
 import Data.Array as Array
 import Data.DateTime as DateTime
 import Data.Either (Either(..))
@@ -23,8 +26,6 @@ import Node.Encoding as Encoding
 import Node.FS.Sync as FS
 import Node.Yargs.Applicative as Yargs
 import Node.Yargs.Setup as YargsSetup
-import OffsetDateTime (OffsetDateTime)
-import OffsetDateTime as OffsetDateTime
 
 readStdin :: Effect String
 readStdin = FS.readTextFile Encoding.UTF8 "/dev/stdin"
@@ -32,8 +33,8 @@ readStdin = FS.readTextFile Encoding.UTF8 "/dev/stdin"
 range :: OffsetDateTime -> OffsetDateTime -> Array OffsetDateTime
 range b e =
   let
-    date = DateTime.date <<< OffsetDateTime.toDateTime <<< OffsetDateTime.inUTC
-    time = DateTime.time <<< OffsetDateTime.toDateTime <<< OffsetDateTime.inUTC
+    date = DateTime.date <<< OffsetDateTime.toUTCDateTime
+    time = DateTime.time <<< OffsetDateTime.toUTCDateTime
     headDate = date b
     headTime = time b
     headZone = OffsetDateTime.timeZoneOffset b
@@ -43,7 +44,7 @@ range b e =
       (\h ->
         Array.mapMaybe
           (\min ->
-            OffsetDateTime.offsetDateTime
+            OffsetDateTime.fromUTCDateTime
               headZone
               (DateTime.DateTime
                 headDate
@@ -58,7 +59,7 @@ app "15min" = do
     lines = String.split (String.Pattern "\n") (String.trim input)
     sorted =
       Array.sortBy
-        (comparing (show <<< Tuple.fst))
+        (comparing (OffsetDateTimeFormatter.toString <<< Tuple.fst))
         (Array.mapMaybe Line.fromString lines)
     hlMaybe = do
       head <- Array.head sorted
@@ -69,10 +70,8 @@ app "15min" = do
     Just { head: (Tuple headOdt _), last: (Tuple tailOdt _) } -> do
       let
         -- TODO: Date
-        date =
-          DateTime.date <<< OffsetDateTime.toDateTime <<< OffsetDateTime.inUTC
-        time =
-          DateTime.time <<< OffsetDateTime.toDateTime <<< OffsetDateTime.inUTC
+        date = DateTime.date <<< OffsetDateTime.toUTCDateTime
+        time = DateTime.time <<< OffsetDateTime.toUTCDateTime
         headDate = date headOdt
         headTime = time headOdt
         headZone = OffsetDateTime.timeZoneOffset headOdt
@@ -86,8 +85,8 @@ app "15min" = do
                 (Array.filter
                   (\(Tuple i _) ->
                     let
-                      b = OffsetDateTime.toDateTime (OffsetDateTime.inUTC odt)
-                      i' = OffsetDateTime.toDateTime (OffsetDateTime.inUTC i)
+                      b = OffsetDateTime.toUTCDateTime odt
+                      i' = OffsetDateTime.toUTCDateTime i
                     in
                       case DateTime.adjust (Duration.Minutes 15.0) b of
                         Nothing -> false
@@ -101,7 +100,9 @@ app "15min" = do
             t =
               String.take
                 (String.length "HH:MM")
-                (OffsetDateTime.toTimeString odt)
+                (String.drop
+                  (String.length "YYYY-MM-DDT")
+                  (OffsetDateTimeFormatter.toString odt))
             m =
               case Array.head ls of
                 Nothing -> ""

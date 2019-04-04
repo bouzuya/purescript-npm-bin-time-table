@@ -6,6 +6,7 @@ You can edit this file as you like.
     "time-table"
 , dependencies =
     [ "bouzuya-datetime"
+    , "bouzuya-datetime-formatter"
     , "console"
     , "effect"
     , "formatters"
