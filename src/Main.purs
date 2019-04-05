@@ -30,11 +30,25 @@ import Node.FS.Sync as FS
 import Node.Yargs.Applicative as Yargs
 import Node.Yargs.Setup as YargsSetup
 
+data LineDuration
+  = QuarterHour
+  | HalfHour
+  | OneHour
+
+minutes :: LineDuration -> Array Minute
+minutes p =
+  Array.mapMaybe
+    Enum.toEnum
+    (case p of
+      QuarterHour -> [0, 15, 30, 45]
+      HalfHour -> [0, 30]
+      OneHour -> [0])
+
 readStdin :: Effect String
 readStdin = FS.readTextFile Encoding.UTF8 "/dev/stdin"
 
-range :: OffsetDateTime -> OffsetDateTime -> Array OffsetDateTime
-range b e =
+range :: LineDuration -> OffsetDateTime -> OffsetDateTime -> Array OffsetDateTime
+range p b e =
   let
     headDate :: Date
     headDate = DateTime.date (OffsetDateTime.toUTCDateTime b)
@@ -48,9 +62,6 @@ range b e =
     hours :: Array Hour
     hours = Enum.enumFromTo (hour b) (hour e)
 
-    minutes :: Array Minute
-    minutes = Array.mapMaybe Enum.toEnum [0, 15, 30, 45]
-
     dt :: Date -> Hour -> Minute -> DateTime
     dt d h m = DateTime.DateTime d (DateTime.Time h m bottom bottom)
 
@@ -58,7 +69,7 @@ range b e =
     odt o d h m = OffsetDateTime.fromUTCDateTime o (dt d h m)
 
     odts :: TimeZoneOffset -> Date -> Hour -> Array OffsetDateTime
-    odts o d h = Array.mapMaybe (odt o d h) minutes
+    odts o d h = Array.mapMaybe (odt o d h) (minutes p)
   in
     Array.concatMap (odts headZone headDate) hours
 
@@ -96,7 +107,7 @@ app "15min" = do
         headTime = time headOdt
         headZone = OffsetDateTime.timeZoneOffset headOdt
         tailTime = time tailOdt
-        dateTimes = range headOdt tailOdt
+        dateTimes = range QuarterHour headOdt tailOdt -- TODO
         outputLines =
           map
             (\odt ->
@@ -108,7 +119,7 @@ app "15min" = do
                       b = OffsetDateTime.toUTCDateTime odt
                       i' = OffsetDateTime.toUTCDateTime i
                     in
-                      case DateTime.adjust (Duration.Minutes 15.0) b of
+                      case DateTime.adjust (Duration.Minutes 15.0) b of -- FIXME
                         Nothing -> false
                         Just e -> between b e i')
                   sorted))
