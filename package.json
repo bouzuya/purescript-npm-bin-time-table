@@ -31,10 +31,9 @@
     "type": "git"
   },
   "scripts": {
-    "build": "spago build",
-    "bundle": "spago make-module",
-    "docs": "spago sources | xargs purs docs --format html 'src/**/*.purs'",
-    "prepare": "npm-run-all -s build bundle",
+    "build": "spago make-module",
+    "docs": "spago docs",
+    "prepare": "npm run build",
     "purs": "purs",
     "repl": "spago repl",
     "spago": "spago",
