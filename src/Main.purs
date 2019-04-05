@@ -4,10 +4,13 @@ module Main
 
 import Prelude
 
+import Bouzuya.DateTime.Formatter.DateTime as DateTimeFormatter
 import Bouzuya.DateTime.Formatter.OffsetDateTime as OffsetDateTimeFormatter
 import Bouzuya.DateTime.OffsetDateTime (OffsetDateTime)
 import Bouzuya.DateTime.OffsetDateTime as OffsetDateTime
+import Bouzuya.DateTime.TimeZoneOffset (TimeZoneOffset)
 import Data.Array as Array
+import Data.DateTime (Date, DateTime, Hour, Minute)
 import Data.DateTime as DateTime
 import Data.Either (Either(..))
 import Data.Enum as Enum
@@ -33,34 +36,51 @@ readStdin = FS.readTextFile Encoding.UTF8 "/dev/stdin"
 range :: OffsetDateTime -> OffsetDateTime -> Array OffsetDateTime
 range b e =
   let
-    date = DateTime.date <<< OffsetDateTime.toUTCDateTime
-    time = DateTime.time <<< OffsetDateTime.toUTCDateTime
-    headDate = date b
-    headTime = time b
+    headDate :: Date
+    headDate = DateTime.date (OffsetDateTime.toUTCDateTime b)
+
+    headZone :: TimeZoneOffset
     headZone = OffsetDateTime.timeZoneOffset b
-    tailTime = time e
+
+    hour :: OffsetDateTime -> Hour
+    hour = Time.hour <<< DateTime.time <<< OffsetDateTime.toUTCDateTime
+
+    hours :: Array Hour
+    hours = Enum.enumFromTo (hour b) (hour e)
+
+    minutes :: Array Minute
+    minutes = Array.mapMaybe Enum.toEnum [0, 15, 30, 45]
+
+    dt :: Date -> Hour -> Minute -> DateTime
+    dt d h m = DateTime.DateTime d (DateTime.Time h m bottom bottom)
+
+    odt :: TimeZoneOffset -> Date -> Hour -> Minute -> Maybe OffsetDateTime
+    odt o d h m = OffsetDateTime.fromUTCDateTime o (dt d h m)
+
+    odts :: TimeZoneOffset -> Date -> Hour -> Array OffsetDateTime
+    odts o d h = Array.mapMaybe (odt o d h) minutes
   in
-    Array.concatMap
-      (\h ->
-        Array.mapMaybe
-          (\min ->
-            OffsetDateTime.fromUTCDateTime
-              headZone
-              (DateTime.DateTime
-                headDate
-                (DateTime.Time h min bottom bottom)))
-          (Array.mapMaybe Enum.toEnum [0, 15, 30, 45]))
-      (Enum.enumFromTo (Time.hour headTime) (Time.hour tailTime))
+    Array.concatMap (odts headZone headDate) hours
+
+sortByOffsetDateTimeAsc :: Array Line -> Array Line
+sortByOffsetDateTimeAsc lines =
+  let
+    compare =
+      comparing
+        (DateTimeFormatter.toString
+          <<< OffsetDateTime.toUTCDateTime
+          <<< Tuple.fst)
+  in Array.sortBy compare lines
 
 app :: String -> Effect Unit
 app "15min" = do
   input <- readStdin
   let
-    lines = String.split (String.Pattern "\n") (String.trim input)
-    sorted =
-      Array.sortBy
-        (comparing (OffsetDateTimeFormatter.toString <<< Tuple.fst))
-        (Array.mapMaybe Line.fromString lines)
+    lines =
+      Array.mapMaybe
+        Line.fromString
+        (String.split (String.Pattern "\n") (String.trim input))
+    sorted = sortByOffsetDateTimeAsc lines
     hlMaybe = do
       head <- Array.head sorted
       last <- Array.last sorted
