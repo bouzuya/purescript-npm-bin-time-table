@@ -8,20 +8,15 @@ import Bouzuya.DateTime.Formatter.DateTime as DateTimeFormatter
 import Bouzuya.DateTime.Formatter.OffsetDateTime as OffsetDateTimeFormatter
 import Bouzuya.DateTime.OffsetDateTime (OffsetDateTime)
 import Bouzuya.DateTime.OffsetDateTime as OffsetDateTime
-import Bouzuya.DateTime.TimeZoneOffset (TimeZoneOffset)
 import Data.Array as Array
-import Data.DateTime (Date, DateTime, Hour, Minute)
 import Data.DateTime as DateTime
 import Data.Either (Either(..))
-import Data.Enum as Enum
 import Data.Maybe (Maybe(..))
 import Data.String as String
-import Data.Time as Time
-import Data.Time.Duration (class Duration, Minutes(..))
-import Data.Time.Duration as Duration
-import Data.Time.Duration as TimeDuration
+import Data.Time.Duration (Minutes)
 import Data.Tuple (Tuple(..))
 import Data.Tuple as Tuple
+import DateTime as MyDateTime
 import Effect (Effect)
 import Effect.Console as Console
 import Effect.Exception as Exception
@@ -36,33 +31,6 @@ import Node.Yargs.Setup as YargsSetup
 
 readStdin :: Effect String
 readStdin = FS.readTextFile Encoding.UTF8 "/dev/stdin"
-
-range ::
-  LineDuration -> OffsetDateTime -> OffsetDateTime -> Array OffsetDateTime
-range duration b e =
-  let
-    headDate :: Date
-    headDate = DateTime.date (OffsetDateTime.toUTCDateTime b)
-
-    headZone :: TimeZoneOffset
-    headZone = OffsetDateTime.timeZoneOffset b
-
-    hour :: OffsetDateTime -> Hour
-    hour = Time.hour <<< DateTime.time <<< OffsetDateTime.toUTCDateTime
-
-    hours :: Array Hour
-    hours = Enum.enumFromTo (hour b) (hour e)
-
-    dt :: Date -> Hour -> Minute -> DateTime
-    dt d h m = DateTime.DateTime d (DateTime.Time h m bottom bottom)
-
-    odt :: TimeZoneOffset -> Date -> Hour -> Minute -> Maybe OffsetDateTime
-    odt o d h m = OffsetDateTime.fromUTCDateTime o (dt d h m)
-
-    odts :: TimeZoneOffset -> Date -> Hour -> Array OffsetDateTime
-    odts o d h = Array.mapMaybe (odt o d h) (LineDuration.toMinutes duration)
-  in
-    Array.concatMap (odts headZone headDate) hours
 
 sortByOffsetDateTimeAsc :: Array Line -> Array Line
 sortByOffsetDateTimeAsc lines =
@@ -97,14 +65,7 @@ app' d = do
     Nothing -> pure unit
     Just { head: (Tuple headOdt _), last: (Tuple tailOdt _) } -> do
       let
-        -- TODO: Date
-        date = DateTime.date <<< OffsetDateTime.toUTCDateTime
-        time = DateTime.time <<< OffsetDateTime.toUTCDateTime
-        headDate = date headOdt
-        headTime = time headOdt
-        headZone = OffsetDateTime.timeZoneOffset headOdt
-        tailTime = time tailOdt
-        dateTimes = range d headOdt tailOdt -- TODO
+        dateTimes = MyDateTime.range d headOdt tailOdt
         outputLines =
           map
             (\odt ->
