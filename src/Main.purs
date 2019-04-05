@@ -17,7 +17,9 @@ import Data.Enum as Enum
 import Data.Maybe (Maybe(..))
 import Data.String as String
 import Data.Time as Time
+import Data.Time.Duration (class Duration, Minutes(..))
 import Data.Time.Duration as Duration
+import Data.Time.Duration as TimeDuration
 import Data.Tuple (Tuple(..))
 import Data.Tuple as Tuple
 import Effect (Effect)
@@ -25,30 +27,19 @@ import Effect.Console as Console
 import Effect.Exception as Exception
 import Line (Line)
 import Line as Line
+import LineDuration (LineDuration)
+import LineDuration as LineDuration
 import Node.Encoding as Encoding
 import Node.FS.Sync as FS
 import Node.Yargs.Applicative as Yargs
 import Node.Yargs.Setup as YargsSetup
 
-data LineDuration
-  = QuarterHour
-  | HalfHour
-  | OneHour
-
-minutes :: LineDuration -> Array Minute
-minutes p =
-  Array.mapMaybe
-    Enum.toEnum
-    (case p of
-      QuarterHour -> [0, 15, 30, 45]
-      HalfHour -> [0, 30]
-      OneHour -> [0])
-
 readStdin :: Effect String
 readStdin = FS.readTextFile Encoding.UTF8 "/dev/stdin"
 
-range :: LineDuration -> OffsetDateTime -> OffsetDateTime -> Array OffsetDateTime
-range p b e =
+range ::
+  LineDuration -> OffsetDateTime -> OffsetDateTime -> Array OffsetDateTime
+range duration b e =
   let
     headDate :: Date
     headDate = DateTime.date (OffsetDateTime.toUTCDateTime b)
@@ -69,7 +60,7 @@ range p b e =
     odt o d h m = OffsetDateTime.fromUTCDateTime o (dt d h m)
 
     odts :: TimeZoneOffset -> Date -> Hour -> Array OffsetDateTime
-    odts o d h = Array.mapMaybe (odt o d h) (minutes p)
+    odts o d h = Array.mapMaybe (odt o d h) (LineDuration.toMinutes duration)
   in
     Array.concatMap (odts headZone headDate) hours
 
@@ -84,7 +75,13 @@ sortByOffsetDateTimeAsc lines =
   in Array.sortBy compare lines
 
 app :: String -> Effect Unit
-app "15min" = do
+app "15min" = app' LineDuration.QuarterHour
+app "30min" = app' LineDuration.HalfHour
+app "1h" = app' LineDuration.OneHour
+app line = Exception.throw (line <> " is not supported")
+
+app' :: LineDuration -> Effect Unit
+app' d = do
   input <- readStdin
   let
     lines =
@@ -107,7 +104,7 @@ app "15min" = do
         headTime = time headOdt
         headZone = OffsetDateTime.timeZoneOffset headOdt
         tailTime = time tailOdt
-        dateTimes = range QuarterHour headOdt tailOdt -- TODO
+        dateTimes = range d headOdt tailOdt -- TODO
         outputLines =
           map
             (\odt ->
@@ -119,7 +116,10 @@ app "15min" = do
                       b = OffsetDateTime.toUTCDateTime odt
                       i' = OffsetDateTime.toUTCDateTime i
                     in
-                      case DateTime.adjust (Duration.Minutes 15.0) b of -- FIXME
+                      case
+                        DateTime.adjust
+                          (LineDuration.toDuration d :: Minutes)
+                          b of
                         Nothing -> false
                         Just e -> between b e i')
                   sorted))
@@ -142,8 +142,6 @@ app "15min" = do
           in
             t <> " " <> m
       Console.log (String.joinWith "\n" (map toStringLine outputLines))
-
-app line = Exception.throw (line <> " is not supported")
 
 main :: Effect Unit
 main = do
