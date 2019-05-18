@@ -5,11 +5,7 @@ You can edit this file as you like.
 { name =
     "time-table"
 , dependencies =
-    [ "bouzuya-datetime"
-    , "bouzuya-datetime-formatter"
-    , "console"
-    , "effect"
-    , "formatters"
+    [ "bouzuya-datetime-formatter"
     , "node-fs"
     , "node-process"
     , "psci-support"
