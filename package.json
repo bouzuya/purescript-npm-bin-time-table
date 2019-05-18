@@ -1,5 +1,5 @@
 {
-  "name": "purescript-npm-bin-time-table",
+  "name": "@bouzuya/time-table",
   "description": "time-table",
   "version": "1.0.0",
   "author": {
